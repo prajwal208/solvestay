@@ -351,12 +351,6 @@ export const AMENITIES = [
   'Visitor Parking', 'Laundry', 'ATM', 'Grocery Store', 'Medical Shop'
 ] as const
 
-export const CITIES = [
-  'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 'Kolkata',
-  'Pune', 'Ahmedabad', 'Jaipur', 'Lucknow', 'Surat', 'Noida', 'Gurgaon',
-  'Chandigarh', 'Kochi', 'Indore', 'Bhopal', 'Nagpur', 'Vadodara', 'Coimbatore'
-] as const
-
 export const STATES = [
   'Maharashtra', 'Delhi', 'Karnataka', 'Telangana', 'Tamil Nadu', 'West Bengal',
   'Gujarat', 'Rajasthan', 'Uttar Pradesh', 'Haryana', 'Punjab', 'Kerala',

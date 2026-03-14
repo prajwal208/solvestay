@@ -6,7 +6,7 @@
     "node": "20.x"
   },
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -64,7 +64,6 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "cobe": "^0.6.5",
-    "country-state-city": "^3.2.1",
     "crypto": "^1.0.1",
     "date-fns": "^4.1.0",
     "dotted-map": "^2.2.3",

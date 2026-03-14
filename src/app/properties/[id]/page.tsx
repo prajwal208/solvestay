@@ -22,7 +22,6 @@ import { useAuthStore } from "@/lib/store";
 import type { Property } from "@/lib/types";
 import { toast } from "sonner";
 import { VisitScheduler } from "@/components/VisitScheduler";
-import { NeighborhoodInsights } from "@/components/NeighborhoodInsights";
 import { Panorama360Viewer } from "@/components/Panorama360Viewer";
 import {
   Heart,
@@ -50,7 +49,65 @@ import {
   Loader2,
   Lock,
   Check,
+  Car,
+  Dumbbell,
+  Waves,
+  TreePine,
+  Shield,
+  ArrowUpDown,
+  Zap,
+  Droplets,
+  Flame,
+  Wifi,
+  Video,
+  Gamepad2,
+  Shirt,
+  ShoppingBag,
+  HeartPulse,
+  Sun,
+  CloudRain,
+  Package,
+  Baby,
+  Footprints,
+  CircleDollarSign,
 } from "lucide-react";
+
+const AMENITY_ICONS: Record<string, typeof Check> = {
+  Parking: Car,
+  "Visitor Parking": Car,
+  Gym: Dumbbell,
+  "Swimming Pool": Waves,
+  Garden: TreePine,
+  Security: Shield,
+  Lift: ArrowUpDown,
+  "Power Backup": Zap,
+  "Water Supply": Droplets,
+  "Gas Pipeline": Flame,
+  "Club House": Building2,
+  "Children Play Area": Baby,
+  "Fire Safety": Flame,
+  Intercom: Phone,
+  "Rain Water Harvesting": CloudRain,
+  "Servant Room": Package,
+  "Store Room": Package,
+  Balcony: Sun,
+  Terrace: Sun,
+  AC: Building2,
+  WiFi: Wifi,
+  CCTV: Video,
+  "Gated Community": Lock,
+  "Jogging Track": Footprints,
+  "Indoor Games": Gamepad2,
+  "Party Hall": Building2,
+  Laundry: Shirt,
+  ATM: CircleDollarSign,
+  "Grocery Store": ShoppingBag,
+  "Medical Shop": HeartPulse,
+};
+
+function getAmenityIcon(amenity: string) {
+  return AMENITY_ICONS[amenity] ?? Check;
+}
 
 const sampleProperty: Property = {
   id: "1",
@@ -401,42 +458,59 @@ export default function PropertyDetailPage({
             Back to listings
           </Button>
 
-          <div className="grid lg:grid-cols-2 gap-4 mb-8">
-            <div
-              className="relative h-[400px] lg:h-[500px] rounded-2xl overflow-hidden cursor-pointer group"
-              onClick={() => setIsGalleryOpen(true)}
-            >
-              <Image
-                src={images?.[0] || ""}
-                alt={property.title}
-                fill
-                className="object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-              <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors" />
-              <div className="absolute bottom-4 right-4">
-                <Badge className="bg-black/50 backdrop-blur">
-                  View all {images?.length} photos
-                </Badge>
+          {/* Image gallery: grid view — click any to open modal */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm text-muted-foreground">
+                {images?.length ?? 0} photo{images?.length === 1 ? "" : "s"}
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-lg h-9"
+                  onClick={handleShare}
+                >
+                  <Share2 className="w-4 h-4 mr-1.5" />
+                  Share
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-lg h-9"
+                  onClick={handleFavorite}
+                >
+                  <Heart
+                    className={`w-4 h-4 mr-1.5 ${isFavorite ? "fill-red-500 text-red-500" : ""}`}
+                  />
+                  Save
+                </Button>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              {images?.slice(1, 5).map((image, index) => (
-                <div
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
+              {(images ?? []).map((src, index) => (
+                <button
                   key={index}
-                  className="relative h-[190px] lg:h-[242px] rounded-xl overflow-hidden cursor-pointer group"
+                  type="button"
+                  className="relative aspect-square rounded-xl overflow-hidden bg-muted focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
                   onClick={() => {
-                    setCurrentImageIndex(index + 1);
+                    setCurrentImageIndex(index);
                     setIsGalleryOpen(true);
                   }}
                 >
                   <Image
-                    src={image}
-                    alt={`${property.title} ${index + 2}`}
+                    src={src}
+                    alt={`${property.title} - ${index + 1}`}
                     fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                    className="object-cover transition-transform duration-300 hover:scale-105"
+                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                   />
-                  <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
-                </div>
+                  {index === 0 && (
+                    <span className="absolute bottom-2 left-2 rounded-md bg-black/50 backdrop-blur px-2 py-0.5 text-xs font-medium text-white">
+                      Cover
+                    </span>
+                  )}
+                </button>
               ))}
             </div>
           </div>
@@ -551,6 +625,125 @@ export default function PropertyDetailPage({
                 <p className="text-muted-foreground whitespace-pre-line leading-relaxed">
                   {property.description}
                 </p>
+              </div>
+
+              {/* Overview — two-column key-value layout */}
+              <div>
+                <h2 className="text-2xl font-bold mb-4">Overview</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
+                  <div className="space-y-5">
+                    {property.security_deposit != null && (
+                      <div>
+                        <div className="text-sm text-muted-foreground">Security</div>
+                        <div className="font-medium">
+                          {property.security_deposit >= 100000
+                            ? `₹${(property.security_deposit / 100000).toFixed(1)} Lac`
+                            : `₹${property.security_deposit.toLocaleString("en-IN")}`}
+                        </div>
+                      </div>
+                    )}
+                    {property.maintenance_charge != null && (
+                      <div>
+                        <div className="text-sm text-muted-foreground">Maintenance</div>
+                        <div className="font-medium">
+                          ₹{property.maintenance_charge.toLocaleString("en-IN")}
+                        </div>
+                      </div>
+                    )}
+                    {property.furnishing && (
+                      <div>
+                        <div className="text-sm text-muted-foreground">Furnishing</div>
+                        <div className="font-medium capitalize">
+                          {property.furnishing.replace("-", " ")}
+                        </div>
+                      </div>
+                    )}
+                    {property.balconies != null && (
+                      <div>
+                        <div className="text-sm text-muted-foreground">Balcony</div>
+                        <div className="font-medium">{property.balconies}</div>
+                      </div>
+                    )}
+                    {(property.floor_number != null || property.total_floors != null) && (
+                      <div>
+                        <div className="text-sm text-muted-foreground">Floor number</div>
+                        <div className="font-medium">
+                          {property.floor_number != null && property.total_floors != null
+                            ? `${property.floor_number} of ${property.total_floors} floors`
+                            : property.floor_number != null
+                              ? `Floor ${property.floor_number}`
+                              : `${property.total_floors} floors`}
+                        </div>
+                      </div>
+                    )}
+                    {property.age_of_property != null && (
+                      <div>
+                        <div className="text-sm text-muted-foreground">Age of property</div>
+                        <div className="font-medium">
+                          {property.age_of_property} year{property.age_of_property !== 1 ? "s" : ""}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-5">
+                    <div>
+                      <div className="text-sm text-muted-foreground">Brokerage</div>
+                      <div className="font-medium">₹0</div>
+                      <Link
+                        href="/properties"
+                        className="text-sm text-primary font-medium mt-0.5 inline-flex items-center gap-1 hover:underline"
+                      >
+                        Access Zero Brokerage Properties
+                        <span className="text-primary">›</span>
+                      </Link>
+                    </div>
+                    {property.area_sqft != null && (
+                      <div>
+                        <div className="text-sm text-muted-foreground">Built up area</div>
+                        <div className="font-medium">{property.area_sqft.toLocaleString("en-IN")} sq.ft</div>
+                      </div>
+                    )}
+                    {property.bathrooms != null && (
+                      <div>
+                        <div className="text-sm text-muted-foreground">Bathrooms</div>
+                        <div className="font-medium">{property.bathrooms}</div>
+                      </div>
+                    )}
+                    <div>
+                      <div className="text-sm text-muted-foreground">Available from</div>
+                      <div className="font-medium">
+                        {property.available_from
+                          ? new Date(property.available_from).toLocaleDateString("en-IN", {
+                              month: "short",
+                              year: "numeric",
+                            })
+                          : property.possession_status === "ready"
+                            ? "Available now"
+                            : property.possession_status === "under_construction"
+                              ? "Under construction"
+                              : "—"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-muted-foreground">Lease type</div>
+                      <div className="font-medium">
+                        {property.listing_type === "rent"
+                          ? "Family / Bachelor / Company"
+                          : property.listing_type === "lease"
+                            ? "Long term lease"
+                            : "—"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-muted-foreground">Parking</div>
+                      <div className="font-medium">
+                        {property.amenities?.find((a) =>
+                          a.toLowerCase().includes("parking")
+                        ) ?? "—"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {property.images_360 && property.images_360.length > 0 ? (
@@ -699,24 +892,24 @@ export default function PropertyDetailPage({
               {property.amenities && property.amenities.length > 0 && (
                 <div>
                   <h2 className="text-2xl font-bold mb-4">Amenities</h2>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {property.amenities.map((amenity) => (
-                      <div
-                        key={amenity}
-                        className="flex items-center gap-2 p-3 rounded-lg bg-muted/50"
-                      >
-                        <Check className="w-4 h-4 text-primary" />
-                        <span className="text-sm">{amenity}</span>
-                      </div>
-                    ))}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {property.amenities.map((amenity) => {
+                      const Icon = getAmenityIcon(amenity);
+                      return (
+                        <div
+                          key={amenity}
+                          className="flex items-center gap-3 p-3 rounded-xl border bg-card"
+                        >
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                            <Icon className="h-5 w-5 text-primary" />
+                          </div>
+                          <span className="text-sm font-medium">{amenity}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
-
-              <NeighborhoodInsights
-                city={property.city}
-                address={property.address}
-              />
             </div>
 
             <div className="space-y-6">
@@ -849,57 +1042,100 @@ export default function PropertyDetailPage({
         </div>
       </div>
 
+      {/* Almost full-width modal with modern full-width carousel */}
       <Dialog open={isGalleryOpen} onOpenChange={setIsGalleryOpen}>
-        <DialogContent className="max-w-5xl h-[90vh] p-0">
-          <div className="relative h-full bg-black">
+        <DialogContent className="max-w-[95vw] w-[95vw] sm:max-w-[92vw] sm:w-[92vw] p-0 gap-0 overflow-hidden rounded-2xl border-0 bg-black shadow-2xl">
+          <div className="relative w-full aspect-video max-h-[60vh] bg-black">
             <Button
               variant="ghost"
               size="icon"
-              className="absolute top-4 right-4 z-10 text-white hover:bg-white/20"
+              className="absolute top-3 right-3 z-30 h-10 w-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur"
               onClick={() => setIsGalleryOpen(false)}
             >
-              <X className="w-6 h-6" />
+              <X className="w-5 h-5" />
             </Button>
-            <Image
-              src={images?.[currentImageIndex] || ""}
-              alt={property.title}
-              fill
-              className="object-contain"
-            />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20"
-              onClick={() =>
-                setCurrentImageIndex((prev) =>
-                  prev === 0 ? (images?.length || 1) - 1 : prev - 1
-                )
-              }
-            >
-              <ChevronLeft className="w-8 h-8" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20"
-              onClick={() =>
-                setCurrentImageIndex((prev) =>
-                  prev === (images?.length || 1) - 1 ? 0 : prev + 1
-                )
-              }
-            >
-              <ChevronRight className="w-8 h-8" />
-            </Button>
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-              {images?.map((_, index) => (
-                <button
-                  key={index}
-                  className={`w-2 h-2 rounded-full transition-colors ${
-                    index === currentImageIndex ? "bg-white" : "bg-white/50"
-                  }`}
-                  onClick={() => setCurrentImageIndex(index)}
-                />
-              ))}
+
+            {/* Modern carousel: full-width sliding track */}
+            <div className="absolute inset-0 overflow-hidden">
+              <motion.div
+                className="flex h-full"
+                style={{ width: `${(images?.length ?? 1) * 100}%` }}
+                animate={{
+                  x: `-${currentImageIndex * (100 / (images?.length ?? 1))}%`,
+                }}
+                transition={{ type: "tween", duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
+              >
+                {images?.map((src, index) => (
+                  <div
+                    key={index}
+                    className="relative flex-shrink-0 h-full min-w-0"
+                    style={{ width: `${100 / (images?.length ?? 1)}%` }}
+                  >
+                    <Image
+                      src={src}
+                      alt={`${property.title} - ${index + 1}`}
+                      fill
+                      className="object-contain"
+                      sizes="95vw"
+                    />
+                  </div>
+                ))}
+              </motion.div>
+            </div>
+
+            {/* Prev / Next — modern pill buttons */}
+            {(images?.length ?? 0) > 1 && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 z-30 h-11 w-11 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur border-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentImageIndex((prev) =>
+                      prev === 0 ? (images?.length ?? 1) - 1 : prev - 1
+                    );
+                  }}
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 z-30 h-11 w-11 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur border-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentImageIndex((prev) =>
+                      prev === (images?.length ?? 1) - 1 ? 0 : prev + 1
+                    );
+                  }}
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </Button>
+              </>
+            )}
+
+            {/* Bottom bar: counter + dots */}
+            <div className="absolute bottom-0 left-0 right-0 z-30 flex items-center justify-between px-4 py-3 bg-gradient-to-t from-black/80 to-transparent">
+              <span className="text-sm text-white/90 font-medium">
+                {currentImageIndex + 1} / {images?.length ?? 0}
+              </span>
+              <div className="flex gap-1.5">
+                {images?.map((_, index) => (
+                  <button
+                    key={index}
+                    className={`rounded-full transition-all duration-200 ${
+                      index === currentImageIndex
+                        ? "h-2 w-6 bg-white"
+                        : "h-2 w-2 bg-white/50 hover:bg-white/70"
+                    }`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentImageIndex(index);
+                    }}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </DialogContent>

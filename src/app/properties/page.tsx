@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Navbar } from "@/components/Navbar";
@@ -33,7 +33,8 @@ import type {
   ListingType,
   FurnishingType,
 } from "@/lib/types";
-import { CITIES, AMENITIES } from "@/lib/types";
+import { AMENITIES } from "@/lib/types";
+import { HomeCitySelect } from "@/components/HomeCitySelect";
 import { toast } from "sonner";
 import {
   Search,
@@ -62,7 +63,7 @@ const PropertyMap = dynamic(
         <Loader2 className="w-8 h-8 animate-spin" />
       </div>
     ),
-  }
+  },
 );
 
 const propertyTypeIcons = {
@@ -79,7 +80,7 @@ function PropertiesContent() {
   const [nearbyEnabled, setNearbyEnabled] = useState(false);
   const [nearbyRadius, setNearbyRadius] = useState(5); // km
   const hasActiveSubscription = useAuthStore((s: any) =>
-    s.hasActiveSubscription()
+    s.hasActiveSubscription(),
   );
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -88,24 +89,26 @@ function PropertiesContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
-  const [selectedCity, setSelectedCity] = useState(
-    searchParams.get("city") || ""
-  );
-  const [cityOptions, setCityOptions] = useState<any[]>([]);
   const [selectedArea, setSelectedArea] = useState("");
-  const [areaOptions, setAreaOptions] = useState<any[]>([]);
+  const [selectedCity, setSelectedCity] = useState(
+    searchParams.get("city") || "",
+  );
+  const [areaOptions, setAreaOptions] = useState<
+    { id: string; text: string }[]
+  >([]);
+  const [areaSearching, setAreaSearching] = useState(false);
+  const defaultSearchCity = "Bangalore";
   const [mapCenter, setMapCenter] = useState<[number, number]>([
     20.5937, 78.9629,
   ]);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(
-    null
+    null,
   );
-  const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
   const [selectedType, setSelectedType] = useState<PropertyType | "">(
-    (searchParams.get("property_type") as PropertyType) || ""
+    (searchParams.get("property_type") as PropertyType) || "",
   );
   const [selectedListing, setSelectedListing] = useState<ListingType | "">(
-    (searchParams.get("type") as ListingType) || ""
+    (searchParams.get("type") as ListingType) || "",
   );
   const [selectedFurnishing, setSelectedFurnishing] = useState<
     FurnishingType | ""
@@ -115,6 +118,51 @@ function PropertiesContent() {
   const [sortBy, setSortBy] = useState("newest");
   const [showMap, setShowMap] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+
+  const fetchAreaSuggestions = useCallback(
+    async (query: string) => {
+      if (!query.trim()) {
+        setAreaOptions([]);
+        return;
+      }
+      const cityForSearch = selectedCity || defaultSearchCity;
+      try {
+        const res = await fetch(
+          `/api/place?q=${encodeURIComponent(query + ", " + cityForSearch)}&limit=6`,
+        );
+        const data = await res.json();
+        const places = data.success && data.places ? data.places : [];
+        setAreaOptions(
+          places.map((p: any, i: number) => ({
+            id: `${p.display_name}-${i}`,
+            text: p.area || p.display_name || "",
+          })),
+        );
+      } catch {
+        setAreaOptions([]);
+      }
+    },
+    [selectedCity],
+  );
+
+  const [showAreaSuggestions, setShowAreaSuggestions] = useState(false);
+
+  useEffect(() => {
+    if (!selectedArea.trim()) {
+      setAreaOptions([]);
+      setShowAreaSuggestions(false);
+      return;
+    }
+    const t = setTimeout(() => {
+      setAreaSearching(true);
+      fetchAreaSuggestions(selectedArea).finally(() => setAreaSearching(false));
+    }, 200);
+    return () => clearTimeout(t);
+  }, [selectedArea, selectedCity, fetchAreaSuggestions]);
+
+  useEffect(() => {
+    if (areaOptions.length > 0) setShowAreaSuggestions(true);
+  }, [areaOptions.length]);
 
   useEffect(() => {
     fetchProperties();
@@ -129,7 +177,7 @@ function PropertiesContent() {
           setMapCenter([pos.coords.latitude, pos.coords.longitude]);
         },
         () => {},
-        { enableHighAccuracy: true }
+        { enableHighAccuracy: true },
       );
     }
   }, []);
@@ -146,7 +194,7 @@ function PropertiesContent() {
       const supabase = createClient();
       let query = supabase
         .from("properties")
-        .select("*")
+        .select("*, owner:profiles(id, full_name, avatar_url)")
         .eq("status", "approved")
         .eq("is_active", true);
 
@@ -198,7 +246,7 @@ function PropertiesContent() {
 
       if (response.ok && data.favorites) {
         const ids = new Set<string>(
-          data.favorites.map((f: any) => f.property_id)
+          data.favorites.map((f: any) => f.property_id),
         );
         setFavoriteIds(ids);
       }
@@ -223,7 +271,7 @@ function PropertiesContent() {
           `/api/favorites?property_id=${propertyId}`,
           {
             method: "DELETE",
-          }
+          },
         );
 
         const data = await response.json();
@@ -264,6 +312,7 @@ function PropertiesContent() {
   const clearFilters = () => {
     setSearchQuery("");
     setSelectedCity("");
+    setSelectedArea("");
     setSelectedType("");
     setSelectedListing("");
     setSelectedFurnishing("");
@@ -274,6 +323,7 @@ function PropertiesContent() {
 
   const activeFiltersCount = [
     selectedCity,
+    selectedArea,
     selectedType,
     selectedListing,
     selectedFurnishing,
@@ -285,7 +335,7 @@ function PropertiesContent() {
     lat1: number,
     lon1: number,
     lat2: number,
-    lon2: number
+    lon2: number,
   ) {
     const R = 6371;
     const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -316,7 +366,7 @@ function PropertiesContent() {
       return false;
     if (selectedAmenities.length > 0) {
       const hasAllAmenities = selectedAmenities.every((amenity) =>
-        property.amenities?.includes(amenity)
+        property.amenities?.includes(amenity),
       );
       if (!hasAllAmenities) return false;
     }
@@ -330,7 +380,7 @@ function PropertiesContent() {
         userLocation[0],
         userLocation[1],
         property.latitude,
-        property.longitude
+        property.longitude,
       );
       if (dist > nearbyRadius) return false;
     } else if (nearbyEnabled && !userLocation) {
@@ -346,320 +396,377 @@ function PropertiesContent() {
       <Navbar />
 
       <div className="pt-20">
-        <div className="bg-linear-to-br from-primary/5 to-accent/5 py-12 border-b">
+        <div className="bg-gradient-to-b from-primary/5 via-primary/[0.02] to-transparent py-10 sm:py-12 border-b">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h1 className="text-3xl sm:text-4xl font-bold mb-4">
+            <h1 className="text-3xl sm:text-4xl font-bold mb-2">
               Find Your Perfect Property
             </h1>
-            <p className="text-muted-foreground mb-8">
+            <p className="text-muted-foreground mb-6 sm:mb-8">
               Browse through {filteredProperties.length} properties across India
             </p>
 
-            <div className="flex flex-col lg:flex-row lg:flex-nowrap lg:items-center gap-3 lg:gap-4 p-4 lg:px-5 lg:py-4 rounded-xl bg-muted/30 border">
-              <div className="flex-1 min-w-0 relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input
-                  placeholder="Search by location, property name..."
-                  className="pl-12 h-12 bg-background"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              {/* City Autocomplete - Custom Dropdown */}
-              <div className="w-full lg:w-44 xl:w-52 flex-shrink-0 relative">
-                <div className="relative">
-                  <Input
-                    type="text"
-                    className="h-12 bg-background pr-10"
-                    placeholder="City"
+            {/* Search card – aligned row on desktop, stacked on mobile */}
+            <div className="rounded-2xl border bg-card/80 shadow-sm p-4 sm:p-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 lg:gap-3 lg:items-end">
+                {/* City */}
+                <div className="lg:col-span-2">
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                    City
+                  </label>
+                  <HomeCitySelect
                     value={selectedCity}
-                    autoComplete="off"
-                    onChange={async (e) => {
-                      setSelectedCity(e.target.value);
+                    onChange={(v) => {
+                      setSelectedCity(v);
                       setSelectedArea("");
-                      if (e.target.value.length > 0) {
-                        const res = await fetch(
-                          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(e.target.value)}.json?types=place&country=IN&access_token=${mapboxToken}`
-                        );
-                        const data = await res.json();
-                        setCityOptions(data.features || []);
-                      } else {
-                        setCityOptions([]);
-                      }
                     }}
-                    onFocus={async (e) => {
-                      if (selectedCity.length > 0 && cityOptions.length === 0) {
-                        const res = await fetch(
-                          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(selectedCity)}.json?types=place&country=IN&access_token=${mapboxToken}`
-                        );
-                        const data = await res.json();
-                        setCityOptions(data.features || []);
-                      }
-                    }}
+                    placeholder="All Cities"
+                    heightClass="h-11"
                   />
-                  {cityOptions.length > 0 && selectedCity && (
-                    <ul className="absolute z-20 left-0 right-0 mt-1 bg-white dark:bg-zinc-900 border border-muted rounded-lg shadow-lg max-h-56 overflow-y-auto animate-fade-in">
-                      {cityOptions.map((city, idx) => (
-                        <li
-                          key={city.id}
-                          className="px-4 py-2 cursor-pointer hover:bg-primary/10 transition text-sm"
-                          onClick={() => {
-                            setSelectedCity(city.text);
-                            setCityOptions([]);
-                            setSelectedArea("");
-                          }}
-                        >
-                          {city.text}
-                          {city.context && (
-                            <span className="ml-2 text-xs text-muted-foreground">
-                              {city.context[0]?.text}
-                            </span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
                 </div>
-              </div>
-              {/* Area Autocomplete - Custom Dropdown */}
-              <div className="w-full lg:w-44 xl:w-52 flex-shrink-0 relative">
-                <div className="relative">
-                  <Input
-                    type="text"
-                    className="h-12 bg-background pr-10"
-                    placeholder={selectedCity ? "Area" : "Area/Locality"}
-                    value={selectedArea}
-                    autoComplete="off"
-                    onChange={async (e) => {
-                      setSelectedArea(e.target.value);
-                      if (e.target.value.length > 0 && selectedCity) {
-                        const res = await fetch(
-                          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(e.target.value + ", " + selectedCity)}.json?types=neighborhood,locality,address&country=IN&access_token=${mapboxToken}`
-                        );
-                        const data = await res.json();
-                        setAreaOptions(data.features || []);
-                      } else {
-                        setAreaOptions([]);
-                      }
-                    }}
-                    onFocus={async (e) => {
-                      if (
-                        selectedArea.length > 0 &&
-                        areaOptions.length === 0 &&
+                {/* Area */}
+                <div className="lg:col-span-2 relative">
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                    Area
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type="text"
+                      className="h-11 bg-background pr-10 rounded-lg"
+                      placeholder={
                         selectedCity
-                      ) {
-                        const res = await fetch(
-                          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(selectedArea + ", " + selectedCity)}.json?types=neighborhood,locality,address&country=IN&access_token=${mapboxToken}`
-                        );
-                        const data = await res.json();
-                        setAreaOptions(data.features || []);
+                          ? "e.g. Marathahalli, Koramangala"
+                          : "e.g. Marathahalli (Bangalore)"
                       }
-                    }}
-                  />
-                  {areaOptions.length > 0 && selectedArea && (
-                    <ul className="absolute z-20 left-0 right-0 mt-1 bg-white dark:bg-zinc-900 border border-muted rounded-lg shadow-lg max-h-56 overflow-y-auto animate-fade-in">
-                      {areaOptions.map((area, idx) => (
-                        <li
-                          key={area.id}
-                          className="px-4 py-2 cursor-pointer hover:bg-primary/10 transition text-sm"
-                          onClick={() => {
-                            setSelectedArea(area.text);
-                            setAreaOptions([]);
-                          }}
-                        >
-                          {area.text}
-                          {area.context && (
-                            <span className="ml-2 text-xs text-muted-foreground">
-                              {area.context[0]?.text}
-                            </span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
-              <Select
-                value={selectedListing}
-                onValueChange={(v) => setSelectedListing(v as ListingType)}
-              >
-                <SelectTrigger className="w-full lg:w-36 xl:w-40 h-12 bg-background flex-shrink-0">
-                  <SelectValue placeholder="Buy/Rent" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="sale">Buy</SelectItem>
-                  <SelectItem value="rent">Rent</SelectItem>
-                  <SelectItem value="lease">Lease</SelectItem>
-                </SelectContent>
-              </Select>
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="outline" className="h-12 gap-2 flex-shrink-0">
-                    <SlidersHorizontal className="w-4 h-4" />
-                    Filters
-                    {activeFiltersCount > 0 && (
-                      <Badge className="ml-1">{activeFiltersCount}</Badge>
+                      value={selectedArea}
+                      autoComplete="off"
+                      onChange={(e) => {
+                        setSelectedArea(e.target.value);
+                        if (!e.target.value.trim()) setAreaOptions([]);
+                      }}
+                      onFocus={() =>
+                        areaOptions.length > 0 && setShowAreaSuggestions(true)
+                      }
+                      onBlur={() =>
+                        setTimeout(() => setShowAreaSuggestions(false), 150)
+                      }
+                    />
+                    {areaSearching && (
+                      <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
                     )}
-                  </Button>
-                </SheetTrigger>
-                <SheetContent className="w-full sm:max-w-md overflow-y-auto">
-                  <SheetHeader>
-                    <SheetTitle>Filter Properties</SheetTitle>
-                  </SheetHeader>
-                  <div className="py-6 space-y-8">
-                    <div>
-                      <h3 className="font-medium mb-4">Property Type</h3>
-                      <div className="grid grid-cols-3 gap-2">
-                        {Object.entries(propertyTypeIcons).map(
-                          ([type, Icon]) => (
-                            <button
-                              key={type}
-                              onClick={() =>
-                                setSelectedType(
-                                  selectedType === type
-                                    ? ""
-                                    : (type as PropertyType)
-                                )
-                              }
-                              className={`p-3 rounded-xl border text-center transition-all ${
-                                selectedType === type
-                                  ? "border-primary bg-primary/5"
-                                  : "hover:border-primary/50"
-                              }`}
-                            >
-                              <Icon
-                                className={`w-5 h-5 mx-auto mb-1 ${selectedType === type ? "text-primary" : ""}`}
-                              />
-                              <span className="text-xs capitalize">{type}</span>
-                            </button>
-                          )
-                        )}
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="font-medium mb-4">Price Range</h3>
-                      <div className="px-2">
-                        <Slider
-                          value={priceRange}
-                          onValueChange={setPriceRange}
-                          max={50000000}
-                          step={100000}
-                          className="mb-4"
-                        />
-                        <div className="flex justify-between text-sm text-muted-foreground">
-                          <span>₹{(priceRange[0] / 100000).toFixed(1)}L</span>
-                          <span>
-                            ₹{(priceRange[1] / 10000000).toFixed(1)}Cr
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="font-medium mb-4">Furnishing</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {[
-                          "unfurnished",
-                          "semi-furnished",
-                          "fully-furnished",
-                        ].map((type) => (
-                          <button
-                            key={type}
-                            onClick={() =>
-                              setSelectedFurnishing(
-                                selectedFurnishing === type
-                                  ? ""
-                                  : (type as FurnishingType)
-                              )
-                            }
-                            className={`px-4 py-2 rounded-full border text-sm capitalize transition-all ${
-                              selectedFurnishing === type
-                                ? "border-primary bg-primary text-primary-foreground"
-                                : "hover:border-primary/50"
-                            }`}
+                    {showAreaSuggestions && areaOptions.length > 0 && (
+                      <ul className="absolute z-20 left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-52 overflow-y-auto py-1">
+                        {areaOptions.map((area) => (
+                          <li
+                            key={area.id}
+                            className="px-3 py-2 cursor-pointer hover:bg-accent/50 text-sm transition-colors"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              setSelectedArea(area.text);
+                              setAreaOptions([]);
+                              setShowAreaSuggestions(false);
+                              if (!selectedCity)
+                                setSelectedCity(defaultSearchCity);
+                            }}
                           >
-                            {type.replace("-", " ")}
-                          </button>
+                            {area.text}
+                            {(selectedCity || defaultSearchCity) && (
+                              <span className="ml-2 text-xs text-muted-foreground">
+                                {selectedCity || defaultSearchCity}
+                              </span>
+                            )}
+                          </li>
                         ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="font-medium mb-4">Amenities</h3>
-                      <div className="grid grid-cols-2 gap-3">
-                        {AMENITIES.slice(0, 12).map((amenity) => (
-                          <label
-                            key={amenity}
-                            className="flex items-center gap-2 cursor-pointer"
-                          >
-                            <Checkbox
-                              checked={selectedAmenities.includes(amenity)}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
-                                  setSelectedAmenities([
-                                    ...selectedAmenities,
-                                    amenity,
-                                  ]);
-                                } else {
-                                  setSelectedAmenities(
-                                    selectedAmenities.filter(
-                                      (a) => a !== amenity
-                                    )
-                                  );
-                                }
-                              }}
-                            />
-                            <span className="text-sm">{amenity}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="flex gap-3 pt-4 border-t">
+                      </ul>
+                    )}
+                  </div>
+                </div>
+                {/* Buy / Rent */}
+                <div className="lg:col-span-2">
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                    Buy / Rent
+                  </label>
+                  <Select
+                    value={selectedListing}
+                    onValueChange={(v) => setSelectedListing(v as ListingType)}
+                  >
+                    <SelectTrigger className="h-11 bg-background rounded-lg">
+                      <SelectValue placeholder="Buy / Rent" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="sale">Buy</SelectItem>
+                      <SelectItem value="rent">Rent</SelectItem>
+                      <SelectItem value="lease">Lease</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {/* Filters */}
+                <div className="lg:col-span-2">
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block opacity-0 pointer-events-none">
+                    Filters
+                  </label>
+                  <Sheet>
+                    <SheetTrigger asChild>
                       <Button
                         variant="outline"
-                        className="flex-1"
-                        onClick={clearFilters}
+                        className="h-11 w-full justify-center gap-2 rounded-lg"
                       >
-                        Clear All
+                        <SlidersHorizontal className="w-4 h-4" />
+                        Filters
+                        {activeFiltersCount > 0 && (
+                          <Badge
+                            variant="secondary"
+                            className="ml-1 h-5 min-w-5 px-1.5"
+                          >
+                            {activeFiltersCount}
+                          </Badge>
+                        )}
                       </Button>
-                      <Button className="flex-1">Apply Filters</Button>
-                    </div>
+                    </SheetTrigger>
+                    <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+                      <SheetHeader>
+                        <SheetTitle>Filter Properties</SheetTitle>
+                      </SheetHeader>
+                      <div className="py-6 space-y-8">
+                        <div>
+                          <h3 className="font-medium mb-4">Property Type</h3>
+                          <div className="grid grid-cols-3 gap-2">
+                            {Object.entries(propertyTypeIcons).map(
+                              ([type, Icon]) => (
+                                <button
+                                  key={type}
+                                  onClick={() =>
+                                    setSelectedType(
+                                      selectedType === type
+                                        ? ""
+                                        : (type as PropertyType),
+                                    )
+                                  }
+                                  className={`p-3 rounded-xl border text-center transition-all ${
+                                    selectedType === type
+                                      ? "border-primary bg-primary/5"
+                                      : "hover:border-primary/50"
+                                  }`}
+                                >
+                                  <Icon
+                                    className={`w-5 h-5 mx-auto mb-1 ${selectedType === type ? "text-primary" : ""}`}
+                                  />
+                                  <span className="text-xs capitalize">
+                                    {type}
+                                  </span>
+                                </button>
+                              ),
+                            )}
+                          </div>
+                        </div>
+
+                        <div>
+                          <h3 className="font-medium mb-4">Price Range</h3>
+                          <div className="px-2">
+                            <Slider
+                              value={priceRange}
+                              onValueChange={setPriceRange}
+                              max={50000000}
+                              step={100000}
+                              className="mb-4"
+                            />
+                            <div className="flex justify-between text-sm text-muted-foreground">
+                              <span>
+                                ₹{(priceRange[0] / 100000).toFixed(1)}L
+                              </span>
+                              <span>
+                                ₹{(priceRange[1] / 10000000).toFixed(1)}Cr
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div>
+                          <h3 className="font-medium mb-4">Furnishing</h3>
+                          <div className="flex flex-wrap gap-2">
+                            {[
+                              "unfurnished",
+                              "semi-furnished",
+                              "fully-furnished",
+                            ].map((type) => (
+                              <button
+                                key={type}
+                                onClick={() =>
+                                  setSelectedFurnishing(
+                                    selectedFurnishing === type
+                                      ? ""
+                                      : (type as FurnishingType),
+                                  )
+                                }
+                                className={`px-4 py-2 rounded-full border text-sm capitalize transition-all ${
+                                  selectedFurnishing === type
+                                    ? "border-primary bg-primary text-primary-foreground"
+                                    : "hover:border-primary/50"
+                                }`}
+                              >
+                                {type.replace("-", " ")}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div>
+                          <h3 className="font-medium mb-4">Amenities</h3>
+                          <div className="grid grid-cols-2 gap-3">
+                            {AMENITIES.slice(0, 12).map((amenity) => (
+                              <label
+                                key={amenity}
+                                className="flex items-center gap-2 cursor-pointer"
+                              >
+                                <Checkbox
+                                  checked={selectedAmenities.includes(amenity)}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      setSelectedAmenities([
+                                        ...selectedAmenities,
+                                        amenity,
+                                      ]);
+                                    } else {
+                                      setSelectedAmenities(
+                                        selectedAmenities.filter(
+                                          (a) => a !== amenity,
+                                        ),
+                                      );
+                                    }
+                                  }}
+                                />
+                                <span className="text-sm">{amenity}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="flex gap-3 pt-4 border-t">
+                          <Button
+                            variant="outline"
+                            className="flex-1"
+                            onClick={clearFilters}
+                          >
+                            Clear All
+                          </Button>
+                          <Button className="flex-1">Apply Filters</Button>
+                        </div>
+                      </div>
+                    </SheetContent>
+                  </Sheet>
+                </div>
+                {/* Keyword search */}
+                <div className="sm:col-span-2 lg:col-span-4">
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                    Keyword
+                  </label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by property name..."
+                      className="pl-9 h-11 bg-background rounded-lg"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
                   </div>
-                </SheetContent>
-              </Sheet>
+                </div>
+              </div>
+              {/* Popular in Bangalore */}
+              <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t">
+                <span className="text-sm font-medium text-muted-foreground">
+                  Popular in Bangalore:
+                </span>
+                {[
+                  {
+                    label: "2 BHK in Whitefield",
+                    city: "Bangalore",
+                    q: "2 BHK Whitefield",
+                  },
+                  {
+                    label: "PG in Koramangala",
+                    city: "Bangalore",
+                    q: "PG Koramangala",
+                  },
+                  {
+                    label: "Flat for rent Indiranagar",
+                    city: "Bangalore",
+                    q: "Flat rent Indiranagar",
+                  },
+                  { label: "Properties in ORR", city: "Bangalore", q: "ORR" },
+                  {
+                    label: "3 BHK Sarjapur Road",
+                    city: "Bangalore",
+                    q: "3 BHK Sarjapur",
+                  },
+                ].map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => {
+                      setSelectedCity(item.city);
+                      setSearchQuery(item.q);
+                      setSelectedArea("");
+                    }}
+                    className="text-sm px-3 py-1.5 rounded-full bg-muted/80 hover:bg-primary hover:text-primary-foreground transition-colors"
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-            <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div className="flex flex-wrap items-center gap-2">
               {selectedCity && (
-                <Badge variant="secondary" className="gap-1">
+                <Badge
+                  variant="secondary"
+                  className="gap-1.5 py-1.5 px-2.5 rounded-md"
+                >
                   {selectedCity}
                   <X
-                    className="w-3 h-3 cursor-pointer"
-                    onClick={() => setSelectedCity("")}
+                    className="w-3.5 h-3.5 cursor-pointer hover:text-foreground"
+                    onClick={() => {
+                      setSelectedCity("");
+                      setSelectedArea("");
+                    }}
+                  />
+                </Badge>
+              )}
+              {selectedArea && (
+                <Badge
+                  variant="secondary"
+                  className="gap-1.5 py-1.5 px-2.5 rounded-md"
+                >
+                  {selectedArea}
+                  <X
+                    className="w-3.5 h-3.5 cursor-pointer hover:text-foreground"
+                    onClick={() => setSelectedArea("")}
                   />
                 </Badge>
               )}
               {selectedType && (
-                <Badge variant="secondary" className="gap-1 capitalize">
+                <Badge
+                  variant="secondary"
+                  className="gap-1.5 py-1.5 px-2.5 rounded-md capitalize"
+                >
                   {selectedType}
                   <X
-                    className="w-3 h-3 cursor-pointer"
+                    className="w-3.5 h-3.5 cursor-pointer hover:text-foreground"
                     onClick={() => setSelectedType("")}
                   />
                 </Badge>
               )}
               {selectedListing && (
-                <Badge variant="secondary" className="gap-1 capitalize">
+                <Badge
+                  variant="secondary"
+                  className="gap-1.5 py-1.5 px-2.5 rounded-md capitalize"
+                >
                   {selectedListing}
                   <X
-                    className="w-3 h-3 cursor-pointer"
+                    className="w-3.5 h-3.5 cursor-pointer hover:text-foreground"
                     onClick={() => setSelectedListing("")}
                   />
                 </Badge>
@@ -667,16 +774,16 @@ function PropertiesContent() {
               {activeFiltersCount > 0 && (
                 <button
                   onClick={clearFilters}
-                  className="text-sm text-primary hover:underline"
+                  className="text-sm text-primary hover:underline font-medium"
                 >
                   Clear all
                 </button>
               )}
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-[180px] h-9 rounded-lg">
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
@@ -687,31 +794,31 @@ function PropertiesContent() {
                 </SelectContent>
               </Select>
 
-              <div className="flex border rounded-lg">
+              <div className="flex rounded-lg border bg-background overflow-hidden">
                 <button
                   onClick={() => setShowMap(!showMap)}
-                  className={`p-2 flex items-center gap-2 ${showMap ? "bg-primary text-primary-foreground" : ""}`}
+                  className={`p-2.5 flex items-center gap-1.5 text-sm font-medium transition-colors ${showMap ? "bg-primary text-primary-foreground" : "hover:bg-muted/50"}`}
                   title="Toggle Map View"
                 >
-                  <MapIcon className="w-5 h-5" />
-                  <span className="text-sm font-medium hidden sm:inline">
-                    Map
-                  </span>
+                  <MapIcon className="w-4 h-4" />
+                  <span className="hidden sm:inline">Map</span>
                 </button>
               </div>
 
-              <div className="flex border rounded-lg">
+              <div className="flex rounded-lg border bg-background overflow-hidden">
                 <button
                   onClick={() => setViewMode("grid")}
-                  className={`p-2 ${viewMode === "grid" ? "bg-muted" : ""}`}
+                  className={`p-2.5 transition-colors ${viewMode === "grid" ? "bg-muted" : "hover:bg-muted/50"}`}
+                  title="Grid view"
                 >
-                  <Grid3X3 className="w-5 h-5" />
+                  <Grid3X3 className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setViewMode("list")}
-                  className={`p-2 ${viewMode === "list" ? "bg-muted" : ""}`}
+                  className={`p-2.5 transition-colors ${viewMode === "list" ? "bg-muted" : "hover:bg-muted/50"}`}
+                  title="List view"
                 >
-                  <List className="w-5 h-5" />
+                  <List className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -755,6 +862,7 @@ function PropertiesContent() {
                     property={property}
                     isFavorite={favoriteIds.has(property.id)}
                     onFavorite={handleFavorite}
+                    variant={viewMode === "list" ? "list" : "grid"}
                   />
                 ))}
               </motion.div>

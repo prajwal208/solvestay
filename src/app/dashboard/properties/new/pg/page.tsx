@@ -23,7 +23,6 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/lib/store";
 import { toast } from "sonner";
 import {
-  CITIES,
   PG_ROOM_AMENITIES,
   PG_RULES,
   PG_COMMON_AMENITIES,
@@ -32,6 +31,7 @@ import {
   type PgAvailableFor,
   type PgDetails,
 } from "@/lib/types";
+import { HomeCitySelect } from "@/components/HomeCitySelect";
 import {
   ArrowLeft,
   ArrowRight,
@@ -570,16 +570,14 @@ export default function NewPgPropertyPage() {
                   </h3>
                   <div>
                     <Label>City *</Label>
-                    <Select value={watchedValues.city} onValueChange={(v) => setValue("city", v)}>
-                      <SelectTrigger className="mt-2">
-                        <SelectValue placeholder="Select city" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CITIES.map((city) => (
-                          <SelectItem key={city} value={city}>{city}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="mt-2">
+                      <HomeCitySelect
+                        value={watchedValues.city}
+                        onChange={(v) => setValue("city", v)}
+                        placeholder="Search city"
+                        heightClass="h-10"
+                      />
+                    </div>
                     {errors.city && <p className="text-sm text-destructive mt-1">{errors.city.message}</p>}
                   </div>
                   <div>

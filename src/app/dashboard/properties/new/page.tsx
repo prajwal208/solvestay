@@ -23,7 +23,8 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/lib/store";
 import { toast } from "sonner";
-import { CITIES, AMENITIES } from "@/lib/types";
+import { AMENITIES } from "@/lib/types";
+import { HomeCitySelect } from "@/components/HomeCitySelect";
 import {
   ArrowLeft,
   ArrowRight,
@@ -890,21 +891,14 @@ export default function NewPropertyPage() {
                   <div className="grid sm:grid-cols-3 gap-4">
                     <div>
                       <Label>City</Label>
-                      <Select
-                        value={watchedValues.city}
-                        onValueChange={(value) => setValue("city", value)}
-                      >
-                        <SelectTrigger className="mt-2">
-                          <SelectValue placeholder="Select city" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {CITIES.map((city) => (
-                            <SelectItem key={city} value={city}>
-                              {city}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="mt-2">
+                        <HomeCitySelect
+                          value={watchedValues.city}
+                          onChange={(value) => setValue("city", value)}
+                          placeholder="Search city"
+                          heightClass="h-10"
+                        />
+                      </div>
                       {errors.city && (
                         <p className="text-sm text-destructive mt-1">
                           {errors.city.message}

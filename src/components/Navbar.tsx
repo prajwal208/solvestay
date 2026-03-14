@@ -1,20 +1,20 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Button } from '@/components/ui/button'
-import { useAuthStore, useNotificationStore } from '@/lib/store'
-import { createClient } from '@/lib/supabase/client'
+import Link from "next/link";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { useAuthStore, useNotificationStore } from "@/lib/store";
+import { createClient } from "@/lib/supabase/client";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import {
   Home,
   Building2,
@@ -33,29 +33,35 @@ import {
   Shield,
   ShieldCheck,
   Calendar,
-} from 'lucide-react'
+} from "lucide-react";
 
 export function Navbar() {
-  const { user, subscription, logout, hasActiveSubscription, getRemainingContacts } = useAuthStore()
-  const { unreadCount } = useNotificationStore()
-  const [scrolled, setScrolled] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const {
+    user,
+    subscription,
+    logout,
+    hasActiveSubscription,
+    getRemainingContacts,
+  } = useAuthStore();
+  const { unreadCount } = useNotificationStore();
+  const [scrolled, setScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 20)
-    }
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const handleLogout = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    logout()
-  }
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    logout();
+  };
 
-  const remainingContacts = getRemainingContacts()
+  const remainingContacts = getRemainingContacts();
 
   return (
     <>
@@ -64,8 +70,8 @@ export function Navbar() {
         animate={{ y: 0 }}
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           scrolled
-            ? 'bg-background/80 backdrop-blur-xl border-b shadow-sm'
-            : 'bg-transparent'
+            ? "bg-background/80 backdrop-blur-xl border-b shadow-sm"
+            : "bg-transparent"
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -74,7 +80,9 @@ export function Navbar() {
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
                 <Home className="w-5 h-5 text-white" />
               </div>
-              <span className="text-xl font-bold tracking-tight">Solvestay</span>
+              <span className="text-xl font-bold tracking-tight">
+                Solvestay
+              </span>
             </Link>
 
             <nav className="hidden lg:flex items-center gap-1">
@@ -116,16 +124,16 @@ export function Navbar() {
             <div className="hidden lg:flex items-center gap-3">
               {user ? (
                 <>
-                  {user.role === 'customer' && hasActiveSubscription() && (
+                  {user.role === "customer" && hasActiveSubscription() && (
                     <div className="px-3 py-1.5 bg-primary/10 rounded-lg text-sm">
                       <span className="text-muted-foreground">Contacts: </span>
                       <span className="font-semibold text-primary">
-                        {remainingContacts === -1 ? '∞' : remainingContacts}
+                        {remainingContacts === -1 ? "∞" : remainingContacts}
                       </span>
                     </div>
                   )}
-                  
-                  {user.role === 'owner' && (
+
+                  {user.role === "owner" && (
                     <Button asChild variant="outline" size="sm">
                       <Link href="/dashboard/properties/new">
                         <Plus className="w-4 h-4 mr-2" />
@@ -134,7 +142,7 @@ export function Navbar() {
                     </Button>
                   )}
 
-                  {user.role === 'admin' && (
+                  {user.role === "admin" && (
                     <Button asChild variant="default" size="sm">
                       <Link href="/admin">
                         <Shield className="w-4 h-4 mr-2" />
@@ -143,27 +151,41 @@ export function Navbar() {
                     </Button>
                   )}
 
-                  <Link href="/dashboard/notifications" className="relative p-2 rounded-lg hover:bg-muted">
+                  <Link
+                    href="/dashboard/notifications"
+                    className="relative p-2 rounded-lg hover:bg-muted"
+                  >
                     <Bell className="w-5 h-5 text-muted-foreground" />
                     {unreadCount > 0 && (
                       <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
-                        {unreadCount > 9 ? '9+' : unreadCount}
+                        {unreadCount > 9 ? "9+" : unreadCount}
                       </span>
                     )}
                   </Link>
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                      <Button
+                        variant="ghost"
+                        className="relative h-10 w-10 rounded-full"
+                      >
                         <Avatar className="h-10 w-10">
-                          <AvatarImage src={user.avatar_url || ''} alt={user.full_name || ''} />
+                          <AvatarImage
+                            src={user.avatar_url || ""}
+                            alt={user.full_name || ""}
+                          />
                           <AvatarFallback className="bg-primary text-primary-foreground">
-                            {user.full_name?.charAt(0) || user.email.charAt(0).toUpperCase()}
+                            {user.full_name?.charAt(0) ||
+                              user.email.charAt(0).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <DropdownMenuContent
+                      className="w-56"
+                      align="end"
+                      forceMount
+                    >
                       <div className="flex items-center justify-start gap-2 p-2">
                         <div className="flex flex-col space-y-1 leading-none">
                           {user.full_name && (
@@ -172,20 +194,29 @@ export function Navbar() {
                           <p className="w-[200px] truncate text-sm text-muted-foreground">
                             {user.email}
                           </p>
-                          <Badge variant="secondary" className={`w-fit text-xs capitalize ${
-                            user.role === 'admin' ? 'bg-primary/10 text-primary' :
-                            user.role === 'owner' ? 'bg-amber-100 text-amber-700' :
-                            ''
-                          }`}>
-                            {user.role === 'admin' && <Shield className="w-3 h-3 mr-1" />}
-                            {user.role === 'owner' && <Building2 className="w-3 h-3 mr-1" />}
+                          <Badge
+                            variant="secondary"
+                            className={`w-fit text-xs capitalize ${
+                              user.role === "admin"
+                                ? "bg-primary/10 text-primary"
+                                : user.role === "owner"
+                                  ? "bg-amber-100 text-amber-700"
+                                  : ""
+                            }`}
+                          >
+                            {user.role === "admin" && (
+                              <Shield className="w-3 h-3 mr-1" />
+                            )}
+                            {user.role === "owner" && (
+                              <Building2 className="w-3 h-3 mr-1" />
+                            )}
                             {user.role}
                           </Badge>
                         </div>
                       </div>
                       <DropdownMenuSeparator />
-                      
-                      {user.role === 'admin' && (
+
+                      {user.role === "admin" && (
                         <DropdownMenuItem asChild>
                           <Link href="/admin">
                             <Shield className="mr-2 h-4 w-4 text-primary" />
@@ -193,15 +224,15 @@ export function Navbar() {
                           </Link>
                         </DropdownMenuItem>
                       )}
-                      
+
                       <DropdownMenuItem asChild>
                         <Link href="/dashboard">
                           <LayoutDashboard className="mr-2 h-4 w-4" />
                           Dashboard
                         </Link>
                       </DropdownMenuItem>
-                      
-                      {user.role === 'owner' && (
+
+                      {user.role === "owner" && (
                         <>
                           <DropdownMenuItem asChild>
                             <Link href="/dashboard/properties">
@@ -223,8 +254,8 @@ export function Navbar() {
                           </DropdownMenuItem>
                         </>
                       )}
-                      
-                      {user.role === 'customer' && (
+
+                      {user.role === "customer" && (
                         <>
                           <DropdownMenuItem asChild>
                             <Link href="/dashboard/favorites">
@@ -240,7 +271,7 @@ export function Navbar() {
                           </DropdownMenuItem>
                         </>
                       )}
-                      
+
                       <DropdownMenuItem asChild>
                         <Link href="/dashboard/messages">
                           <MessageSquare className="mr-2 h-4 w-4" />
@@ -254,7 +285,10 @@ export function Navbar() {
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                      <DropdownMenuItem
+                        onClick={handleLogout}
+                        className="text-destructive"
+                      >
                         <LogOut className="mr-2 h-4 w-4" />
                         Log out
                       </DropdownMenuItem>
@@ -294,10 +328,10 @@ export function Navbar() {
               onClick={() => setMobileMenuOpen(false)}
             />
             <motion.div
-              initial={{ x: '100%' }}
+              initial={{ x: "100%" }}
               animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 20 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 20 }}
               className="fixed top-0 right-0 bottom-0 w-80 bg-background z-50 lg:hidden shadow-xl"
             >
               <div className="flex items-center justify-between p-4 border-b">
@@ -345,7 +379,7 @@ export function Navbar() {
                 <div className="border-t my-4" />
                 {user ? (
                   <>
-                    {user.role === 'admin' && (
+                    {user.role === "admin" && (
                       <Link
                         href="/admin"
                         className="flex items-center gap-3 px-4 py-3 rounded-lg bg-primary/10 text-primary font-medium"
@@ -363,7 +397,7 @@ export function Navbar() {
                       <LayoutDashboard className="w-5 h-5" />
                       Dashboard
                     </Link>
-                    {user.role === 'owner' && (
+                    {user.role === "owner" && (
                       <Link
                         href="/dashboard/properties"
                         className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted"
@@ -373,7 +407,7 @@ export function Navbar() {
                         My Properties
                       </Link>
                     )}
-                    {user.role === 'customer' && (
+                    {user.role === "customer" && (
                       <Link
                         href="/dashboard/favorites"
                         className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted"
@@ -393,8 +427,8 @@ export function Navbar() {
                     </Link>
                     <button
                       onClick={() => {
-                        handleLogout()
-                        setMobileMenuOpen(false)
+                        handleLogout();
+                        setMobileMenuOpen(false);
                       }}
                       className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted w-full text-left text-destructive"
                     >
@@ -427,5 +461,5 @@ export function Navbar() {
         )}
       </AnimatePresence>
     </>
-  )
+  );
 }
