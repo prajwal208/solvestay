@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useForm } from 'react-hook-form'
@@ -44,12 +44,10 @@ import {
   Compass,
 } from 'lucide-react'
 
-const propertyTypes = [
+const BASE_PROPERTY_TYPES = [
   { id: 'house', label: 'House', icon: Home },
   { id: 'apartment', label: 'Apartment', icon: Building2 },
   { id: 'pg', label: 'PG/Hostel', icon: Users },
-  { id: 'land', label: 'Land', icon: LandPlot },
-  { id: 'villa', label: 'Villa', icon: Castle },
   { id: 'commercial', label: 'Commercial', icon: Store },
 ]
 
@@ -66,8 +64,8 @@ const furnishingTypes = [
 ]
 
 const propertySchema = z.object({
-  title: z.string().min(10, 'Title must be at least 10 characters'),
-  description: z.string().min(50, 'Description must be at least 50 characters'),
+  title: z.string().min(4, 'Title must be at least 4 characters'),
+  description: z.string().min(20, 'Description must be at least 20 characters'),
   property_type: z.string().min(1, 'Please select property type'),
   listing_type: z.string().min(1, 'Please select listing type'),
   price: z.preprocess((val) => (val === '' || val === undefined ? undefined : Number(val)), z.number().min(1, 'Please enter a valid price')),
@@ -98,6 +96,29 @@ export default function EditPropertyPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [property, setProperty] = useState<Property | null>(null)
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([])
+
+  const propertyTypes = useMemo(() => {
+    if (!property?.property_type) return BASE_PROPERTY_TYPES
+    const ids = new Set(BASE_PROPERTY_TYPES.map((t) => t.id))
+    if (ids.has(property.property_type)) return BASE_PROPERTY_TYPES
+    const legacyLabels: Record<string, string> = {
+      land: 'Land',
+      villa: 'Villa',
+      plot: 'Plot',
+    }
+    const pt = property.property_type
+    let LegacyIcon = Home
+    if (pt === 'land') LegacyIcon = LandPlot
+    else if (pt === 'villa') LegacyIcon = Castle
+    return [
+      ...BASE_PROPERTY_TYPES,
+      {
+        id: pt,
+        label: legacyLabels[pt] ?? pt,
+        icon: LegacyIcon,
+      },
+    ]
+  }, [property?.property_type])
   const [images, setImages] = useState<string[]>([])
   const [images360, setImages360] = useState<string[]>([])
   const [isUploading, setIsUploading] = useState(false)
@@ -289,7 +310,7 @@ export default function EditPropertyPage() {
     if (propertyType === 'pg') {
       return ['bedrooms', 'bathrooms', 'furnishing', 'floor_number', 'total_floors'].includes(field)
     }
-    // For house, apartment, villa, commercial
+    // For house, apartment, commercial, villa (legacy)
     return true
   }
 

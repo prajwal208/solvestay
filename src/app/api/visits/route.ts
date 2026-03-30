@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
           type: 'visit_request',
           title: 'New Visit Request',
           message: `${customerProfileData?.full_name || 'A customer'} has requested to visit "${property?.title || 'your property'}" on ${new Date(preferred_date).toLocaleDateString()} at ${preferred_time}`,
-          link: `/dashboard/visits`,
+          link: `/dashboard/visits?visit=${visitRequest.id}`,
           image_url: property?.images?.[0] || null,
           is_read: false,
           metadata: {
@@ -135,8 +135,17 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
-    const role = searchParams.get('role') // 'owner' or 'customer'
+    let role = searchParams.get('role') // 'owner' or 'customer'
     const property_id = searchParams.get('property_id')
+
+    if (role !== 'owner' && role !== 'customer') {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle()
+      role = profile?.role === 'owner' ? 'owner' : 'customer'
+    }
 
     let query = supabaseAdmin
       .from('visit_requests')

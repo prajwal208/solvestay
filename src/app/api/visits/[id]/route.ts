@@ -93,7 +93,7 @@ export async function PUT(
           message: status === 'confirmed'
             ? `Your visit request for "${property?.title || 'property'}" has been confirmed.${confirmed_date ? ` Scheduled for ${new Date(confirmed_date).toLocaleDateString()}` : ''}`
             : `Your visit request for "${property?.title || 'property'}" has been rejected.${owner_message ? ` Reason: ${owner_message}` : ''}`,
-          link: '/dashboard/visits',
+          link: `/dashboard/visits?visit=${id}`,
           is_read: false,
           metadata: {
             visit_request_id: id,

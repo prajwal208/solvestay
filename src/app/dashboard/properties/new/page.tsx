@@ -32,8 +32,6 @@ import {
   Home,
   Building2,
   Users,
-  LandPlot,
-  Castle,
   Store,
   MapPin,
   IndianRupee,
@@ -49,8 +47,6 @@ const propertyTypes = [
   { id: "house", label: "House", icon: Home },
   { id: "apartment", label: "Apartment", icon: Building2 },
   { id: "pg", label: "PG/Hostel", icon: Users },
-  { id: "land", label: "Land", icon: LandPlot },
-  { id: "villa", label: "Villa", icon: Castle },
   { id: "commercial", label: "Commercial", icon: Store },
 ];
 
@@ -67,8 +63,8 @@ const furnishingTypes = [
 ];
 
 const propertySchema = z.object({
-  title: z.string().min(10, "Title must be at least 10 characters"),
-  description: z.string().min(50, "Description must be at least 50 characters"),
+  title: z.string().min(4, "Title must be at least 4 characters"),
+  description: z.string().min(20, "Description must be at least 20 characters"),
   property_type: z.string().min(1, "Please select property type"),
   listing_type: z.string().min(1, "Please select listing type"),
   price: z.preprocess(
@@ -206,9 +202,6 @@ export default function NewPropertyPage() {
 
   // Dynamic field visibility based on property type
   const shouldShowField = (field: string): boolean => {
-    if (propertyType === "land") {
-      return ["area_sqft", "facing"].includes(field);
-    }
     if (propertyType === "pg") {
       return [
         "bedrooms",
@@ -218,7 +211,7 @@ export default function NewPropertyPage() {
         "total_floors",
       ].includes(field);
     }
-    // For house, apartment, villa, commercial - show all fields
+    // For house, apartment, commercial - show all fields
     return true;
   };
 

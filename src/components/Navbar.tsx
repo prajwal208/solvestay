@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ import {
 } from "lucide-react";
 
 export function Navbar() {
+  const router = useRouter();
   const {
     user,
     subscription,
@@ -56,12 +58,32 @@ export function Navbar() {
   }, []);
 
   const handleLogout = async () => {
+    setMobileMenuOpen(false);
     const supabase = createClient();
-    await supabase.auth.signOut();
+    try {
+      await Promise.race([
+        supabase.auth.signOut(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("signOut timeout")), 12_000),
+        ),
+      ]);
+    } catch {
+      await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+    }
     logout();
+    router.push("/");
+    router.refresh();
   };
 
   const remainingContacts = getRemainingContacts();
+  const hideCustomerBrowseNav = user?.role === "owner";
+  const brandHref = user?.role === "owner" ? "/dashboard/owner" : "/";
+  const dashboardHref =
+    user?.role === "owner"
+      ? "/dashboard/owner"
+      : user?.role === "admin"
+        ? "/admin"
+        : "/dashboard/customer";
 
   return (
     <>
@@ -76,7 +98,7 @@ export function Navbar() {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 lg:h-20">
-            <Link href="/" className="flex items-center gap-2">
+            <Link href={brandHref} className="flex items-center gap-2">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
                 <Home className="w-5 h-5 text-white" />
               </div>
@@ -85,41 +107,43 @@ export function Navbar() {
               </span>
             </Link>
 
-            <nav className="hidden lg:flex items-center gap-1">
-              <Link
-                href="/properties"
-                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted"
-              >
-                <span className="flex items-center gap-2">
-                  <Search className="w-4 h-4" />
-                  Find Properties
-                </span>
-              </Link>
-              <Link
-                href="/properties?listing_type=rent"
-                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted"
-              >
-                Rent
-              </Link>
-              <Link
-                href="/properties?listing_type=sale"
-                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted"
-              >
-                Buy
-              </Link>
-              <Link
-                href="/properties?property_type=pg"
-                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted"
-              >
-                PG/Hostel
-              </Link>
-              <Link
-                href="/pricing"
-                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted"
-              >
-                Pricing
-              </Link>
-            </nav>
+            {!hideCustomerBrowseNav && (
+              <nav className="hidden lg:flex items-center gap-1">
+                <Link
+                  href="/properties"
+                  className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted"
+                >
+                  <span className="flex items-center gap-2">
+                    <Search className="w-4 h-4" />
+                    Find Properties
+                  </span>
+                </Link>
+                <Link
+                  href="/properties?listing_type=rent"
+                  className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted"
+                >
+                  Rent
+                </Link>
+                <Link
+                  href="/properties?listing_type=sale"
+                  className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted"
+                >
+                  Buy
+                </Link>
+                <Link
+                  href="/properties?property_type=pg"
+                  className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted"
+                >
+                  PG/Hostel
+                </Link>
+                <Link
+                  href="/pricing"
+                  className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted"
+                >
+                  Pricing
+                </Link>
+              </nav>
+            )}
 
             <div className="hidden lg:flex items-center gap-3">
               {user ? (
@@ -226,7 +250,7 @@ export function Navbar() {
                       )}
 
                       <DropdownMenuItem asChild>
-                        <Link href="/dashboard">
+                        <Link href={dashboardHref}>
                           <LayoutDashboard className="mr-2 h-4 w-4" />
                           Dashboard
                         </Link>
@@ -344,39 +368,53 @@ export function Navbar() {
                 </button>
               </div>
               <nav className="p-4 space-y-2">
-                <Link
-                  href="/properties"
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Search className="w-5 h-5" />
-                  Find Properties
-                </Link>
-                <Link
-                  href="/properties?listing_type=rent"
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Building2 className="w-5 h-5" />
-                  Rent
-                </Link>
-                <Link
-                  href="/properties?listing_type=sale"
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Home className="w-5 h-5" />
-                  Buy
-                </Link>
-                <Link
-                  href="/pricing"
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <CreditCard className="w-5 h-5" />
-                  Pricing
-                </Link>
-                <div className="border-t my-4" />
+                {!hideCustomerBrowseNav && (
+                  <>
+                    <Link
+                      href="/properties"
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Search className="w-5 h-5" />
+                      Find Properties
+                    </Link>
+                    <Link
+                      href="/properties?listing_type=rent"
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Building2 className="w-5 h-5" />
+                      Rent
+                    </Link>
+                    <Link
+                      href="/properties?listing_type=sale"
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Home className="w-5 h-5" />
+                      Buy
+                    </Link>
+                    <Link
+                      href="/properties?property_type=pg"
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Building2 className="w-5 h-5" />
+                      PG/Hostel
+                    </Link>
+                    <Link
+                      href="/pricing"
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <CreditCard className="w-5 h-5" />
+                      Pricing
+                    </Link>
+                  </>
+                )}
+                {!hideCustomerBrowseNav && (
+                  <div className="border-t my-4" />
+                )}
                 {user ? (
                   <>
                     {user.role === "admin" && (
@@ -390,7 +428,7 @@ export function Navbar() {
                       </Link>
                     )}
                     <Link
-                      href="/dashboard"
+                      href={dashboardHref}
                       className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted"
                       onClick={() => setMobileMenuOpen(false)}
                     >

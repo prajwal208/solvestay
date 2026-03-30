@@ -209,10 +209,11 @@ export default function PropertyDetailPage({
   }, [resolvedParams.id]);
 
   useEffect(() => {
-    // Check if contact was already revealed
     if (user && property) {
       checkContactReveal();
-      checkFavoriteStatus();
+      if (user.role !== "owner") {
+        checkFavoriteStatus();
+      }
     }
   }, [user, property]);
 
@@ -441,6 +442,8 @@ export default function PropertyDetailPage({
     );
   }
 
+  const hideBuyerSidebar = user?.role === "owner";
+  const hideSaveFavorite = user?.role === "owner";
   const images = property.images || sampleProperty.images;
 
   return (
@@ -474,17 +477,19 @@ export default function PropertyDetailPage({
                   <Share2 className="w-4 h-4 mr-1.5" />
                   Share
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="rounded-lg h-9"
-                  onClick={handleFavorite}
-                >
-                  <Heart
-                    className={`w-4 h-4 mr-1.5 ${isFavorite ? "fill-red-500 text-red-500" : ""}`}
-                  />
-                  Save
-                </Button>
+                {!hideSaveFavorite && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-lg h-9"
+                    onClick={handleFavorite}
+                  >
+                    <Heart
+                      className={`w-4 h-4 mr-1.5 ${isFavorite ? "fill-red-500 text-red-500" : ""}`}
+                    />
+                    Save
+                  </Button>
+                )}
               </div>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
@@ -515,8 +520,12 @@ export default function PropertyDetailPage({
             </div>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-8">
+          <div
+            className={`grid gap-8 ${hideBuyerSidebar ? "" : "lg:grid-cols-3"}`}
+          >
+            <div
+              className={`space-y-8 ${hideBuyerSidebar ? "" : "lg:col-span-2"}`}
+            >
               <div>
                 <div className="flex flex-wrap items-center gap-3 mb-4">
                   <Badge className="bg-primary/90">
@@ -912,132 +921,134 @@ export default function PropertyDetailPage({
               )}
             </div>
 
-            <div className="space-y-6">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="sticky top-24 space-y-6"
-              >
-                <div className="p-6 rounded-2xl border bg-card">
-                  <div className="flex items-center gap-4 mb-6">
-                    <Avatar className="h-16 w-16">
-                      <AvatarImage src={property.owner?.avatar_url || ""} />
-                      <AvatarFallback className="bg-primary text-primary-foreground text-xl">
-                        {property.owner?.full_name?.charAt(0) || "O"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <div className="font-semibold text-lg">
-                        {property.owner?.full_name || "Property Owner"}
+            {!hideBuyerSidebar && (
+              <div className="space-y-6">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="sticky top-24 space-y-6"
+                >
+                  <div className="p-6 rounded-2xl border bg-card">
+                    <div className="flex items-center gap-4 mb-6">
+                      <Avatar className="h-16 w-16">
+                        <AvatarImage src={property.owner?.avatar_url || ""} />
+                        <AvatarFallback className="bg-primary text-primary-foreground text-xl">
+                          {property.owner?.full_name?.charAt(0) || "O"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="font-semibold text-lg">
+                          {property.owner?.full_name || "Property Owner"}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          {property.owner?.is_verified && (
+                            <>
+                              <BadgeCheck className="w-4 h-4 text-green-500" />
+                              <span>Verified Owner</span>
+                            </>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        {property.owner?.is_verified && (
-                          <>
-                            <BadgeCheck className="w-4 h-4 text-green-500" />
-                            <span>Verified Owner</span>
-                          </>
+                    </div>
+
+                    {hasRevealedContact && contactInfo ? (
+                      <div className="space-y-3 mb-6 p-4 bg-green-50 dark:bg-green-950/30 rounded-xl">
+                        <h4 className="font-semibold text-green-900 dark:text-green-100">
+                          Contact Information
+                        </h4>
+                        {contactInfo.phone && (
+                          <div className="flex items-center gap-3">
+                            <Phone className="w-5 h-5 text-green-600" />
+                            <a
+                              href={`tel:${contactInfo.phone}`}
+                              className="font-medium text-green-900 dark:text-green-100 hover:underline"
+                            >
+                              {contactInfo.phone}
+                            </a>
+                          </div>
                         )}
+                        {contactInfo.email && (
+                          <div className="flex items-center gap-3">
+                            <Mail className="w-5 h-5 text-green-600" />
+                            <a
+                              href={`mailto:${contactInfo.email}`}
+                              className="font-medium text-green-900 dark:text-green-100 hover:underline"
+                            >
+                              {contactInfo.email}
+                            </a>
+                          </div>
+                        )}
+                        {contactInfo.whatsapp && (
+                          <div className="flex items-center gap-3">
+                            <MessageSquare className="w-5 h-5 text-green-600" />
+                            <a
+                              href={`https://wa.me/${contactInfo.whatsapp.replace(/[^0-9]/g, "")}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-medium text-green-900 dark:text-green-100 hover:underline"
+                            >
+                              {contactInfo.whatsapp}
+                            </a>
+                          </div>
+                        )}
+                        <div className="text-sm text-green-700 dark:text-green-400">
+                          Contact revealed! You can now contact the owner
+                          directly.
+                        </div>
                       </div>
+                    ) : (
+                      <Button
+                        className="w-full h-12 mb-4"
+                        onClick={handleRevealContact}
+                      >
+                        <Lock className="w-4 h-4 mr-2" />
+                        Reveal Contact Number
+                      </Button>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button
+                        variant="outline"
+                        className="h-12"
+                        onClick={handleFavorite}
+                      >
+                        <Heart
+                          className={`w-4 h-4 mr-2 ${isFavorite ? "fill-red-500 text-red-500" : ""}`}
+                        />
+                        {isFavorite ? "Saved" : "Save"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="h-12"
+                        onClick={handleShare}
+                      >
+                        <Share2 className="w-4 h-4 mr-2" />
+                        Share
+                      </Button>
                     </div>
                   </div>
 
-                  {hasRevealedContact && contactInfo ? (
-                    <div className="space-y-3 mb-6 p-4 bg-green-50 dark:bg-green-950/30 rounded-xl">
-                      <h4 className="font-semibold text-green-900 dark:text-green-100">
-                        Contact Information
-                      </h4>
-                      {contactInfo.phone && (
-                        <div className="flex items-center gap-3">
-                          <Phone className="w-5 h-5 text-green-600" />
-                          <a
-                            href={`tel:${contactInfo.phone}`}
-                            className="font-medium text-green-900 dark:text-green-100 hover:underline"
-                          >
-                            {contactInfo.phone}
-                          </a>
-                        </div>
-                      )}
-                      {contactInfo.email && (
-                        <div className="flex items-center gap-3">
-                          <Mail className="w-5 h-5 text-green-600" />
-                          <a
-                            href={`mailto:${contactInfo.email}`}
-                            className="font-medium text-green-900 dark:text-green-100 hover:underline"
-                          >
-                            {contactInfo.email}
-                          </a>
-                        </div>
-                      )}
-                      {contactInfo.whatsapp && (
-                        <div className="flex items-center gap-3">
-                          <MessageSquare className="w-5 h-5 text-green-600" />
-                          <a
-                            href={`https://wa.me/${contactInfo.whatsapp.replace(/[^0-9]/g, "")}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="font-medium text-green-900 dark:text-green-100 hover:underline"
-                          >
-                            {contactInfo.whatsapp}
-                          </a>
-                        </div>
-                      )}
-                      <div className="text-sm text-green-700 dark:text-green-400">
-                        Contact revealed! You can now contact the owner
-                        directly.
-                      </div>
-                    </div>
-                  ) : (
-                    <Button
-                      className="w-full h-12 mb-4"
-                      onClick={handleRevealContact}
-                    >
-                      <Lock className="w-4 h-4 mr-2" />
-                      Reveal Contact Number
-                    </Button>
-                  )}
+                  <VisitScheduler
+                    propertyId={property.id}
+                    ownerId={property.owner_id}
+                  />
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <Button
-                      variant="outline"
-                      className="h-12"
-                      onClick={handleFavorite}
-                    >
-                      <Heart
-                        className={`w-4 h-4 mr-2 ${isFavorite ? "fill-red-500 text-red-500" : ""}`}
-                      />
-                      {isFavorite ? "Saved" : "Save"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="h-12"
-                      onClick={handleShare}
-                    >
-                      <Share2 className="w-4 h-4 mr-2" />
-                      Share
+                  <div className="p-6 rounded-2xl border bg-gradient-to-br from-primary/5 to-accent/5">
+                    <h3 className="font-semibold mb-4">
+                      Need help finding a property?
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Our experts can help you find the perfect property matching
+                      your requirements.
+                    </p>
+                    <Button variant="outline" className="w-full">
+                      <MessageSquare className="w-4 h-4 mr-2" />
+                      Get Expert Help
                     </Button>
                   </div>
-                </div>
-
-                <VisitScheduler
-                  propertyId={property.id}
-                  ownerId={property.owner_id}
-                />
-
-                <div className="p-6 rounded-2xl border bg-gradient-to-br from-primary/5 to-accent/5">
-                  <h3 className="font-semibold mb-4">
-                    Need help finding a property?
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Our experts can help you find the perfect property matching
-                    your requirements.
-                  </p>
-                  <Button variant="outline" className="w-full">
-                    <MessageSquare className="w-4 h-4 mr-2" />
-                    Get Expert Help
-                  </Button>
-                </div>
-              </motion.div>
-            </div>
+                </motion.div>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -64,8 +64,8 @@ const availableForOptions: { id: PgAvailableFor; label: string }[] = [
 ];
 
 const pgSchema = z.object({
-  title: z.string().min(10, "Title must be at least 10 characters"),
-  description: z.string().min(50, "Description must be at least 50 characters"),
+  title: z.string().min(4, "Title must be at least 4 characters"),
+  description: z.string().min(20, "Description must be at least 20 characters"),
   price: z.preprocess(
     (val) => (val === "" || val === undefined ? undefined : Number(val)),
     z.number().min(1, "Please enter expected rent")
@@ -453,7 +453,6 @@ export default function NewPgPropertyPage() {
                   className="space-y-6"
                 >
                   <div>
-                    <Label className="text-base mb-4 block">Select the type of rooms available in your PG</Label>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                       {roomTypeOptions.map((opt) => (
                         <label

@@ -183,7 +183,7 @@ function PropertiesContent() {
   }, []);
 
   useEffect(() => {
-    if (user) {
+    if (user && user.role !== "owner") {
       fetchFavoriteIds();
     }
   }, [user, properties]);
@@ -861,7 +861,9 @@ function PropertiesContent() {
                     key={property.id}
                     property={property}
                     isFavorite={favoriteIds.has(property.id)}
-                    onFavorite={handleFavorite}
+                    onFavorite={
+                      user?.role === "owner" ? undefined : handleFavorite
+                    }
                     variant={viewMode === "list" ? "list" : "grid"}
                   />
                 ))}

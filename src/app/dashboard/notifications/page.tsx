@@ -24,6 +24,22 @@ import {
   Trash2,
 } from 'lucide-react'
 
+function notificationDetailHref(notification: Notification): string | null {
+  if (!notification.link) return null
+  const visitId =
+    typeof notification.metadata?.visit_request_id === 'string'
+      ? notification.metadata.visit_request_id
+      : null
+  if (
+    visitId &&
+    (notification.type === 'visit_request' ||
+      notification.type === 'visit_update')
+  ) {
+    return `/dashboard/visits?visit=${encodeURIComponent(visitId)}`
+  }
+  return notification.link
+}
+
 const iconMap = {
   message: MessageSquare,
   property_approved: CheckCircle,
@@ -146,7 +162,8 @@ export default function NotificationsPage() {
             <div className="space-y-4">
               {notifications.map((notification) => {
                 const Icon = iconMap[notification.type] || Bell
-                
+                const detailHref = notificationDetailHref(notification)
+
                 return (
                   <motion.div
                     key={notification.id}
@@ -178,9 +195,9 @@ export default function NotificationsPage() {
                           <span className="text-xs text-muted-foreground">
                             {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
                           </span>
-                          {notification.link && (
+                          {detailHref && (
                             <Link
-                              href={notification.link}
+                              href={detailHref}
                               className="text-xs text-primary hover:underline"
                               onClick={() => handleMarkAsRead(notification.id)}
                             >

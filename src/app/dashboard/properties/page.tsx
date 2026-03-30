@@ -317,10 +317,6 @@ export default function MyPropertiesPage() {
 
                       <div className="flex items-center gap-6 mt-4 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
-                          <Eye className="w-4 h-4" />
-                          <span>{property.views_count} views</span>
-                        </div>
-                        <div className="flex items-center gap-1">
                           <Phone className="w-4 h-4" />
                           <span>{property.contacts_count} contacts</span>
                         </div>

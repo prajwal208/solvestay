@@ -226,16 +226,18 @@ export function PropertyCard({
                 </span>
               )}
               <div className="flex items-center gap-2 ml-auto">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 rounded-full border"
-                  onClick={handleFavoriteClick}
-                >
-                  <Heart
-                    className={`w-4 h-4 ${isFavorite ? "fill-red-500 text-red-500" : ""}`}
-                  />
-                </Button>
+                {onFavorite && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 rounded-full border"
+                    onClick={handleFavoriteClick}
+                  >
+                    <Heart
+                      className={`w-4 h-4 ${isFavorite ? "fill-red-500 text-red-500" : ""}`}
+                    />
+                  </Button>
+                )}
                 <Button
                   asChild
                   size="sm"
@@ -288,16 +290,18 @@ export function PropertyCard({
             )}
           </div>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute top-3 right-3 h-9 w-9 rounded-full bg-white/90 backdrop-blur hover:bg-white shadow-sm"
-            onClick={handleFavoriteClick}
-          >
-            <Heart
-              className={`w-5 h-5 ${isFavorite ? "fill-red-500 text-red-500" : "text-zinc-600"}`}
-            />
-          </Button>
+          {onFavorite && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-3 right-3 h-9 w-9 rounded-full bg-white/90 backdrop-blur hover:bg-white shadow-sm"
+              onClick={handleFavoriteClick}
+            >
+              <Heart
+                className={`w-5 h-5 ${isFavorite ? "fill-red-500 text-red-500" : "text-zinc-600"}`}
+              />
+            </Button>
+          )}
 
           <div className="absolute bottom-3 left-3 right-3">
             <div className="flex items-center gap-1.5 text-white/90 text-sm">

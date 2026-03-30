@@ -26,9 +26,14 @@ import {
   Building2,
 } from 'lucide-react'
 
+const MIN_PASSWORD_LENGTH = 8
+
 export default function SettingsPage() {
   const { user, setUser } = useAuthStore()
   const [isLoading, setIsLoading] = useState(false)
+  const [passwordLoading, setPasswordLoading] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [formData, setFormData] = useState({
     full_name: '',
     phone: '',
@@ -99,6 +104,34 @@ export default function SettingsPage() {
       toast.error('Failed to update profile')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleChangePassword = async () => {
+    if (!user || user.role !== 'owner') return
+
+    if (newPassword.length < MIN_PASSWORD_LENGTH) {
+      toast.error(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`)
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('New passwords do not match')
+      return
+    }
+
+    setPasswordLoading(true)
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+      if (error) throw error
+      setNewPassword('')
+      setConfirmPassword('')
+      toast.success('Password updated successfully')
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to update password'
+      toast.error(message)
+    } finally {
+      setPasswordLoading(false)
     }
   }
 
@@ -413,20 +446,77 @@ export default function SettingsPage() {
                         </Button>
                       </div>
 
-                      <div className="flex items-center justify-between p-4 rounded-lg border">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                            <Lock className="w-5 h-5" />
+                      {user.role === 'owner' ? (
+                        <div className="p-4 rounded-lg border space-y-4">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                              <Lock className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="font-medium">Password</p>
+                              <p className="text-sm text-muted-foreground">
+                                Sign in with email and a new password below. Not available for
+                                social-only accounts.
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-medium">Password</p>
-                            <p className="text-sm text-muted-foreground">Last changed: Never</p>
+                          <div className="grid sm:grid-cols-2 gap-4 pt-2">
+                            <div className="space-y-2">
+                              <Label htmlFor="new_password">New password</Label>
+                              <Input
+                                id="new_password"
+                                type="password"
+                                autoComplete="new-password"
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="confirm_password">Confirm new password</Label>
+                              <Input
+                                id="confirm_password"
+                                type="password"
+                                autoComplete="new-password"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                placeholder="Re-enter new password"
+                              />
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            onClick={handleChangePassword}
+                            disabled={passwordLoading || !newPassword || !confirmPassword}
+                          >
+                            {passwordLoading ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Updating…
+                              </>
+                            ) : (
+                              <>
+                                <Lock className="w-4 h-4 mr-2" />
+                                Update password
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between p-4 rounded-lg border">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                              <Lock className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="font-medium">Password</p>
+                              <p className="text-sm text-muted-foreground">
+                                Managed through your sign-in provider
+                              </p>
+                            </div>
                           </div>
                         </div>
-                        <Button variant="outline" size="sm">
-                          Change
-                        </Button>
-                      </div>
+                      )}
                     </div>
 
                     <div className="pt-4 border-t">
